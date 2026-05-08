@@ -35,7 +35,7 @@ git clone git@github.com:dev-change/LAB-MATERIALS.git
 
 ---
 
-## 目录结构
+## 目录结构（示例）
 
 ```
 lab-materials/
