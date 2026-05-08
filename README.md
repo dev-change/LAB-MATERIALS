@@ -10,7 +10,7 @@
 ### 克隆仓库
 
 ```bash
-git clone git@github.com:Disordedchange/LAB-MATERIALS.git
+git clone git@github.com:dev-change/LAB-MATERIALS.git
 ```
 
 > 如果 IP 变动，请联系管理员获取最新地址。
