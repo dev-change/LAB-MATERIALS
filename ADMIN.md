@@ -9,7 +9,7 @@
 | 项目 | 内容 |
 |------|------|
 | 仓库路径 | `D:\GitRepos\lab-materials.git` |
-| 访问地址 | `ssh://Administrator@192.168.21.1/D:/GitRepos/lab-materials.git` |
+| 访问地址 | `ssh://Administrator@192.168.1.114/D:/GitRepos/lab-materials.git` |
 | 服务端 | Windows OpenSSH + Git Bare Repository |
 | 分支保护 | `main`/`master` 禁止直接 push，强制 squash merge |
 
@@ -206,7 +206,7 @@ Restart-Service sshd
 **简易镜像方案**（定期执行）：
 ```bash
 # 在另一台机器上执行
-git clone --mirror ssh://Administrator@192.168.21.1/D:/GitRepos/lab-materials.git
+git clone --mirror ssh://Administrator@192.168.1.114/D:/GitRepos/lab-materials.git
 cd lab-materials.git
 git remote update
 ```
