@@ -10,7 +10,7 @@
 ### 克隆仓库
 
 ```bash
-git clone ssh://Administrator@192.168.21.1/D:/GitRepos/lab-materials.git
+git clone ssh://Administrator@192.168.1.114/D:/GitRepos/lab-materials.git
 ```
 
 > 如果 IP 变动，请联系管理员获取最新地址。
@@ -194,7 +194,7 @@ int main() { return 0; }
 - **管理员**：见 [ADMIN.md](./ADMIN.md)
 - **服务运行环境**：台式机（Windows + OpenSSH + Git Bare）
 - **备份策略**：每周自动打包备份到 `D:\GitRepos\backups\`
-- **IP 地址**：`192.168.21.1`（校园网内网），如变动请关注群通知
+- **IP 地址**：`192.168.1.114`（实验室内网），如变动请关注群通知
 
 ---
 
