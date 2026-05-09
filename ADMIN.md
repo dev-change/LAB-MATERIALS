@@ -1,222 +1,121 @@
-# 仓库管理维护手册
+# 仓库维护手册
 
-> 本文档面向仓库管理员与维护人员。
+> 本文档面向仓库维护人（管理员）。
 
 ---
 
-## 一、仓库基本信息
+## 仓库信息
 
 | 项目 | 内容 |
 |------|------|
-| 仓库路径 | `D:\GitRepos\lab-materials.git` |
-| 访问地址 | `ssh://Administrator@192.168.1.114/D:/GitRepos/lab-materials.git` |
-| 服务端 | Windows OpenSSH + Git Bare Repository |
-| 分支保护 | `main`/`master` 禁止直接 push，强制 squash merge |
+| 地址 | https://github.com/dev-change/LAB-MATERIALS |
+| 类型 | Public |
+| 提交方式 | Fork + Pull Request |
 
 ---
 
-## 二、日常维护操作
+## 分支策略
 
-### 2.1 检查服务状态
+### 分支说明
 
-```powershell
-# 检查 SSH 服务
-Get-Service sshd | Select-Object Name, Status, StartType
+| 分支 | 用途 | 保护状态 |
+|------|------|---------|
+| `main` | 精选资料，面向所有人长期可用 | 建议开启保护 |
+| `2024` | 2024 届资料存档 | 可选保护 |
+| `2025` | 2025 届资料存档 | 可选保护 |
+| `2026` | 2026 届资料存档 | 可选保护 |
 
-# 检查防火墙规则
-Get-NetFirewallRule -Name "OpenSSH-Server-In-TCP" | Select-Object Name, Enabled, Action
+### 合并规则
 
-# 检查磁盘空间（D 盘）
-Get-PSDrive D | Select-Object Used, Free
-```
+收到 PR 后，根据资料质量决定合并目标：
 
-### 2.2 备份仓库
+| 质量评级 | 合并目标 | 标准 |
+|---------|---------|------|
+| ⭐⭐⭐ 高 | `main` | 内容准确、结构清晰、通用性强、可长期复用 |
+| ⭐⭐ 中 | `main` 或对应届分支 | 内容不错但有局限，或属于特定届的特色资料 |
+| ⭐ 一般 | 对应届分支 | 内容尚可但不具备通用性，或格式不够规范 |
 
-**手动备份**：
-```powershell
-$date = Get-Date -Format "yyyyMMdd_HHmmss"
-$backupDir = "D:\GitRepos\backups"
-if (!(Test-Path $backupDir)) { New-Item -ItemType Directory -Path $backupDir -Force }
-
-# 打包备份
-Compress-Archive -Path "D:\GitRepos\lab-materials.git" `
-    -DestinationPath "$backupDir\lab-materials.git_$date.zip" -Force
-
-Write-Host "备份完成: $backupDir\lab-materials.git_$date.zip"
-```
-
-**自动备份脚本**（保存为 `D:\GitRepos\backup.ps1`，配合任务计划程序每周运行）：
-```powershell
-# backup.ps1
-$date = Get-Date -Format "yyyyMMdd"
-$backupDir = "D:\GitRepos\backups"
-$repoPath = "D:\GitRepos\lab-materials.git"
-$retentionDays = 30
-
-# 创建备份目录
-if (!(Test-Path $backupDir)) { New-Item -ItemType Directory -Path $backupDir -Force }
-
-# 执行备份
-Compress-Archive -Path $repoPath `
-    -DestinationPath "$backupDir\lab-materials.git_$date.zip" -Force
-
-# 清理旧备份
-Get-ChildItem $backupDir -Filter "*.zip" | Where-Object {
-    $_.LastWriteTime -lt (Get-Date).AddDays(-$retentionDays)
-} | Remove-Item -Force
-
-Write-Host "$(Get-Date) 备份完成，已清理 $retentionDays 天前的旧备份。"
-```
+**操作**：在 PR 页面选择 "Squash and merge"，然后选择目标分支。如果 PR 目标是 main 但你想合并到届分支，可以让提交者重新提 PR，或自己 cherry-pick。
 
 ---
 
-## 三、用户管理
+## GitHub 仓库设置建议
 
-### 3.1 添加队友 SSH 公钥
+### 1. 分支保护（推荐开启）
 
-当队友发送公钥时：
+Settings → Branches → Add rule：
 
-```powershell
-$teammateKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... teammate@device"
-Add-Content -Path "$env:USERPROFILE\.ssh\authorized_keys" -Value $teammateKey -Encoding UTF8
-```
+- **Branch name pattern**: `main`
+- ✅ **Require a pull request before merging**
+  - ✅ **Require approvals**: 1（至少一个人 review）
+- ✅ **Require status checks to pass before merging**（可选）
+- ✅ **Restrict pushes that create files larger than 100 MB**（GitHub 自带）
 
-**查看当前已授权密钥**：
-```powershell
-Get-Content "$env:USERPROFILE\.ssh\authorized_keys"
-```
+### 2. 自动删除分支
 
-**撤销某人的访问权限**：编辑 `authorized_keys`，删除对应公钥行。
+Settings → General → Pull Requests：
+- ✅ **Automatically delete head branches**
 
-### 3.2 创建专用 Git 用户（推荐用于正式场景）
+合并后自动删除 feature 分支，保持仓库整洁。
 
-如需隔离权限，可创建 Windows 本地用户 `git`：
-```powershell
-# 创建用户（密码自行设置）
-$password = Read-Host "输入密码" -AsSecureString
-New-LocalUser -Name "git" -Password $password -FullName "Git Service" -Description "Git SSH Access"
+### 3. PR 模板（可选）
 
-# 创建该用户的 .ssh 目录
-$gitHome = "C:\Users\git"
-$sshDir = "$gitHome\.ssh"
-New-Item -ItemType Directory -Path $sshDir -Force
+在仓库根目录创建 `.github/pull_request_template.md`：
 
-# 设置目录权限（仅 git 用户可访问）
-icacls $sshDir /inheritance:r
-icacls $sshDir /grant:r "git:(OI)(CI)F"
+```markdown
+## 提交内容
+
+- [ ] 新增资料
+- [ ] 修正错误
+- [ ] 其他
+
+## 说明
+
+简要描述提交了什么、为什么提交。
+
+## 质量自评
+
+- [ ] 内容经过验证
+- [ ] 格式规范（Markdown）
+- [ ] 文件名和路径正确
 ```
 
 ---
 
-## 四、Hook 维护
+## 日常维护操作
 
-### 4.1 修改 update hook
+### 同步届分支
 
-Hook 文件位置：`D:\GitRepos\lab-materials.git\hooks\update`
-
-当前规则：
-- 拦截 `main`/`master` 的直接 push
-- 允许 squash merge
-- 允许首次初始化 push
-- 允许删除分支
-
-如需调整规则，编辑该文件后无需重启任何服务，即时生效。
-
-### 4.2 添加其他 Hook（可选）
-
-- **`pre-receive`**：在 update 之前执行，可全局拒绝某些提交
-- **`post-receive`**：push 完成后触发，可用于发送通知、自动部署等
-
----
-
-## 五、故障排查
-
-### 5.1 队友无法连接
-
-| 现象 | 排查步骤 |
-|------|---------|
-| 连接超时 | 检查本机 IP 是否变动；检查防火墙是否放行 22 端口；确认台式机开机 |
-| 权限拒绝 | 检查 `authorized_keys` 中是否包含对方公钥；检查 `.ssh` 目录权限 |
-| 认证失败 | 确认队友使用正确的用户名（`Administrator`）；检查私钥是否匹配 |
-
-### 5.2 仓库损坏修复
+每届分支应定期从 main 同步通用更新：
 
 ```bash
-# 进入裸仓库
-cd /d D:\GitRepos\lab-materials.git
-
-# 运行一致性检查
-git fsck --full
-
-# 如果发现问题，尝试用备份恢复
+git checkout 2026
+git merge main
+# 如有冲突，手动解决后提交
+git push origin 2026
 ```
 
-### 5.3 服务重启
+### 归档旧届分支
 
-```powershell
-Restart-Service sshd
-```
+某届毕业后，将其分支设为只读（通过分支保护规则），不再接受新 PR。
 
----
+### 清理 Fork
 
-## 六、IP 变动处理
+定期检查并删除自己的 Fork 中已合并的远程分支：
 
-如果台式机 IP 发生变化：
-
-1. 获取新 IP：
-   ```powershell
-   (Get-NetIPAddress -AddressFamily IPv4 | Where-Object {
-       $_.IPAddress -like '192.168.*' -and $_.IPAddress -ne '127.0.0.1'
-   }).IPAddress | Select-Object -First 1
-   ```
-
-2. 通知所有队友更新仓库 remote URL：
-   ```bash
-   git remote set-url origin ssh://Administrator@新IP/D:/GitRepos/lab-materials.git
-   ```
-
-3. 建议：在路由器中为台式机设置**静态 IP 绑定**，避免频繁变动。
-
----
-
-## 七、关于文档格式的决策（维护人视角）
-
-**结论：要求提交人直接提供 Markdown 文件。**
-
-理由：
-- Markdown 是 Git 原生友好格式，diff 清晰、版本控制高效
-- Word/PDF 是二进制格式，Git 无法有效追踪变更，仓库体积膨胀快
-- 维护人没有义务为每个人的文档做格式转换，这会形成单点瓶颈
-- 现代编辑器（VS Code、Typora、Obsidian）对 Markdown 的支持已经非常完善
-
-**例外情况处理**：
-- 如果某些资料只有 Word/PDF 版本（如老师下发的课件），允许直接放入仓库，但需在文件名中标注格式，例如：`数字电路_课件_v1.2.pdf`
-- 鼓励将核心内容（如八股、面经）整理为 Markdown，便于迭代更新
-
----
-
-## 八、关于镜像仓库
-
-**是否需要镜像？**
-
-建议设置**单向镜像备份**（到另一台机器、NAS 或云端），而非双向同步的多主镜像。原因：
-- 裸仓库本来就是协作中心，多主镜像会增加冲突复杂度
-- 单向备份足够满足"防止台式机硬盘损坏"的容灾需求
-
-**简易镜像方案**（定期执行）：
 ```bash
-# 在另一台机器上执行
-git clone --mirror ssh://Administrator@192.168.1.114/D:/GitRepos/lab-materials.git
-cd lab-materials.git
-git remote update
-```
-
-或者使用 GitHub/GitLab 作为冷备份，定期 push：
-```bash
-git remote add backup https://github.com/your-org/lab-materials-mirror.git
-git push backup --mirror
+git remote prune origin
 ```
 
 ---
 
-*最后更新：2026-05-07*
+## 注意事项
+
+1. **不要直接在 main 上 push**，始终通过 PR 合并
+2. **合并方式**：优先使用 "Squash and merge"，保持主分支历史简洁
+3. **定期 review**：积压的 PR 不要拖太久，每周集中处理一次
+4. **质量把关**：宁缺毋滥，main 分支的内容代表仓库的面子
+
+---
+
+*最后更新：2026-05-09*
