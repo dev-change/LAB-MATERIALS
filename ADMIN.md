@@ -8,7 +8,7 @@
 
 | 项目 | 内容 |
 |------|------|
-| 地址 | https://github.com/dev-change/LAB-MATERIALS |
+| 地址 | https://github.com/dev-change/Embedded-Materials |
 | 类型 | Public |
 | 提交方式 | Fork + Pull Request |
 
